@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}404 — Omnify Store{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div style="text-align:center;">
+    <div style="font-family:var(--mono);font-size:72px;font-weight:800;color:var(--accent);line-height:1;">404</div>
+    <div style="font-size:18px;font-weight:700;margin:16px 0 8px;">Страница не найдена</div>
+    <p style="font-family:var(--mono);font-size:12px;color:var(--text-dim);margin-bottom:24px;">
+      Запрошенная страница не существует или была удалена.
+    </p>
+    <a href="{{ url_for('index') }}" class="add-btn" style="display:inline-block;text-decoration:none;">← На главную</a>
+  </div>
+</div>
+{% endblock %}

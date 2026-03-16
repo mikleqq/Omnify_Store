@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% block title %}Оформление заказа — Omnify Store{% endblock %}
+
+{% block content %}
+<div class="page">
+  <h1 class="page-title">Оформление заказа</h1>
+  <p class="page-sub">{{ items|length }} товаров в корзине</p>
+
+  <div class="flex gap-4" style="align-items:flex-start;flex-wrap:wrap;">
+
+    <!-- LEFT COLUMN -->
+    <div style="flex:1;min-width:340px;display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Customer info -->
+      <div class="card">
+        <div class="card-header">Контактные данные</div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Имя</label>
+              <input type="text" id="f-name" placeholder="Ваше имя" value="{{ prefill.name or '' }}">
+            </div>
+            <div class="form-group">
+              <label>Телефон</label>
+              <input type="tel" id="f-phone" placeholder="+7 (999) 000-00-00">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="f-email" placeholder="email@example.com" value="{{ prefill.email or '' }}">
+          </div>
+          <div class="form-group">
+            <label>Адрес доставки</label>
+            <input type="text" id="f-address" placeholder="Город, улица, дом, квартира">
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivery -->
+      <div class="card">
+        <div class="card-header">Способ доставки</div>
+        <div class="card-body">
+          {% for opt in delivery_options %}
+          <label class="option-item {% if loop.first %}selected{% endif %}" id="dlv-{{ opt.key }}">
+            <input type="radio" name="delivery" value="{{ opt.key }}" {% if loop.first %}checked{% endif %}
+                   onchange="selectDelivery('{{ opt.key }}', {{ opt.cost }})">
+            <div class="option-desc">
+              <div class="opt-name">{{ opt.icon }} {{ opt.name }}</div>
+              <div class="opt-sub">{{ opt.description }} · {{ opt.days }} дн.</div>
+            </div>
+            <span class="option-price" id="dlv-price-{{ opt.key }}">
+              {% if opt.cost == 0 %}Бесплатно{% else %}+${{ opt.cost|int }}{% endif %}
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Payment -->
+      <div class="card">
+        <div class="card-header">Способ оплаты</div>
+        <div class="card-body">
+          <div class="payment-tabs" id="payment-tabs">
+            {% for opt in payment_options %}
+            <button class="payment-tab {% if loop.first %}active{% endif %}"
+                    data-panel="pay-{{ opt.key }}" onclick="selectPayTab(this)">
+              {{ opt.icon }} {{ opt.name }}
+            </button>
+            {% endfor %}
+          </div>
+          {% for opt in payment_options %}
+          <div class="payment-panel {% if loop.first %}active{% endif %}" id="pay-{{ opt.key }}">
+            {{ opt.form | safe }}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Extras / Decorators -->
+      <div class="card">
+        <div class="card-header">Дополнительные услуги</div>
+        <div class="card-body">
+          <label class="option-item" id="extra-gift_wrap">
+            <input type="checkbox" value="gift_wrap" onchange="toggleExtra(this)">
+            <div class="option-desc">
+              <div class="opt-name">🎁 Подарочная упаковка</div>
+              <div class="opt-sub">Красивая упаковка с лентой</div>
+            </div>
+            <span class="option-price">+$2</span>
+          </label>
+          <label class="option-item" id="extra-express_upgrade">
+            <input type="checkbox" value="express_upgrade" onchange="toggleExtra(this)">
+            <div class="option-desc">
+              <div class="opt-name">⚡ Экспресс-доставка</div>
+              <div class="opt-sub">Приоритетная обработка заказа</div>
+            </div>
+            <span class="option-price">+$3</span>
+          </label>
+          <label class="option-item" id="extra-insurance">
+            <input type="checkbox" value="insurance" onchange="toggleExtra(this)">
+            <div class="option-desc">
+              <div class="opt-name">🛡 Страховка</div>
+              <div class="opt-sub">1% от стоимости заказа</div>
+            </div>
+            <span class="option-price">1%</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Coupon -->
+      <div class="card">
+        <div class="card-header">Промокод</div>
+        <div class="card-body">
+          <div class="coupon-row">
+            <input type="text" id="coupon-input" placeholder="Введите промокод" style="text-transform:uppercase;">
+            <button onclick="applyCoupon()">Применить</button>
+          </div>
+          <div id="coupon-msg"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div style="width:300px;flex-shrink:0;display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Order summary -->
+      <div class="card">
+        <div class="card-header">Состав заказа</div>
+        <div class="card-body">
+          {% for item in items %}
+          <div style="display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:11px;padding:6px 0;border-bottom:1px solid var(--border);">
+            <span>{{ item.icon }} {{ item.name }}</span>
+            <span style="color:var(--text-dim);">×{{ item.quantity }}</span>
+            <span style="color:var(--accent);">${{ (item.price*item.quantity)|int }}</span>
+          </div>
+          {% endfor %}
+
+          <table class="order-summary-table" style="margin-top:8px;">
+            <tr>
+              <td class="lbl">Товары</td>
+              <td class="val">${{ subtotal|int }}</td>
+            </tr>
+            <tr>
+              <td class="lbl">Доставка</td>
+              <td class="val" id="s-delivery">–</td>
+            </tr>
+            <tr id="s-extras-row" style="display:none;">
+              <td class="lbl">Доп. услуги</td>
+              <td class="val" id="s-extras">$0</td>
+            </tr>
+            <tr id="s-discount-row" style="display:none;">
+              <td class="lbl" style="color:var(--accent3);">Скидка</td>
+              <td class="val" id="s-discount" style="color:var(--accent3);">−$0</td>
+            </tr>
+            <tr class="grand-total">
+              <td class="lbl">Итого</td>
+              <td class="val accent" id="s-total">${{ subtotal|int }}</td>
+            </tr>
+          </table>
+
+          <button class="pay-btn" id="pay-btn" onclick="submitOrder()">Оплатить</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- Result modal -->
+<div class="modal-overlay" id="result-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">✅ Заказ оформлен</div>
+    <div id="modal-body"></div>
+    <hr class="divider">
+    <button class="modal-close" onclick="location.href='/orders'">Мои заказы</button>
+    &nbsp;
+    <button class="modal-close" onclick="location.href='/'">В каталог</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SUBTOTAL = {{ subtotal }};
+let deliveryCost = {{ delivery_options[0].cost if delivery_options else 0 }};
+let selectedDelivery = '{{ delivery_options[0].key if delivery_options else "" }}';
+let selectedPayment  = '{{ payment_options[0].key if payment_options else "" }}';
+let extras = [];
+let couponCode = '';
+let discountPct = 0;
+
+function recalc() {
+  const extrasFixed = (extras.includes('gift_wrap') ? 2 : 0)
+                    + (extras.includes('express_upgrade') ? 3 : 0);
+  const insAmt = extras.includes('insurance') ? SUBTOTAL * 0.01 : 0;
+  const discountAmt = (SUBTOTAL + deliveryCost) * discountPct / 100;
+  const total = SUBTOTAL + deliveryCost + extrasFixed + insAmt - discountAmt;
+
+  document.getElementById('s-delivery').textContent = deliveryCost === 0 ? 'Бесплатно' : '$' + deliveryCost;
+  document.getElementById('s-total').textContent = '$' + Math.round(total);
+
+  const extrasAmt = extrasFixed + insAmt;
+  const extRow = document.getElementById('s-extras-row');
+  extRow.style.display = extrasAmt > 0 ? '' : 'none';
+  document.getElementById('s-extras').textContent = '+$' + Math.round(extrasAmt);
+
+  const discRow = document.getElementById('s-discount-row');
+  discRow.style.display = discountAmt > 0 ? '' : 'none';
+  document.getElementById('s-discount').textContent = '−$' + Math.round(discountAmt);
+}
+
+function selectDelivery(key, cost) {
+  document.querySelectorAll('.option-item[id^="dlv-"]').forEach(el => el.classList.remove('selected'));
+  document.getElementById('dlv-' + key)?.classList.add('selected');
+  selectedDelivery = key;
+  deliveryCost = cost;
+  recalc();
+}
+
+function selectPayTab(btn) {
+  document.querySelectorAll('.payment-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.payment-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const panel = document.getElementById(btn.dataset.panel);
+  if (panel) panel.classList.add('active');
+  selectedPayment = btn.dataset.panel.replace('pay-', '');
+}
+
+function toggleExtra(cb) {
+  const lbl = cb.closest('.option-item');
+  if (cb.checked) { extras.push(cb.value); lbl.classList.add('selected'); }
+  else { extras = extras.filter(x => x !== cb.value); lbl.classList.remove('selected'); }
+  recalc();
+}
+
+function applyCoupon() {
+  const code = document.getElementById('coupon-input').value.trim().toUpperCase();
+  if (!code) return;
+  fetch('/checkout/validate_coupon', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({code})
+  }).then(r=>r.json()).then(d=>{
+    const msg = document.getElementById('coupon-msg');
+    if (d.valid) {
+      couponCode = code; discountPct = d.discount_pct;
+      msg.className='coupon-ok'; msg.textContent='✓ Скидка ' + d.discount_pct + '% применена';
+      recalc();
+    } else {
+      couponCode=''; discountPct=0;
+      msg.className='coupon-err'; msg.textContent='✕ Промокод не найден';
+      recalc();
+    }
+  });
+}
+
+function getPaymentData() {
+  const active = document.querySelector('.payment-panel.active');
+  if (!active) return {};
+  const data = {};
+  active.querySelectorAll('input, select').forEach(el => {
+    if (el.name) data[el.name] = el.value;
+  });
+  return data;
+}
+
+function submitOrder() {
+  const btn = document.getElementById('pay-btn');
+  btn.disabled = true; btn.textContent = 'Обработка...';
+
+  const payload = {
+    name:            document.getElementById('f-name').value.trim(),
+    email:           document.getElementById('f-email').value.trim(),
+    phone:           document.getElementById('f-phone').value.trim(),
+    address:         document.getElementById('f-address').value.trim(),
+    delivery_method: selectedDelivery,
+    payment_method:  selectedPayment,
+    extras,
+    coupon_code:     couponCode,
+    ...getPaymentData(),
+  };
+
+  fetch('/checkout/submit', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  }).then(r=>r.json()).then(d=>{
+    btn.disabled = false; btn.textContent = 'Оплатить';
+    if (d.success) {
+      document.getElementById('modal-title').textContent = d.payment?.success ? '✅ Заказ оформлен' : '⚠️ Заказ создан (оплата не прошла)';
+
+      let html = `<div class="result-section">
+        <h6>Заказ</h6>
+        <div class="result-row"><span>ID</span><span class="mono" style="color:var(--accent)">#${d.order_id}</span></div>
+        <div class="result-row"><span>Сумма</span><span>$${Math.round(d.total)}</span></div>
+        <div class="result-row"><span>Статус</span><span style="color:${d.payment?.success?'var(--accent3)':'var(--accent2)'}">
+          ${d.payment?.success ? 'Оплачен' : 'Не оплачен'}</span></div>
+      </div>`;
+      if (d.notifications?.length) {
+        html += `<div class="result-section"><h6>Уведомления</h6>`;
+        d.notifications.forEach(n => {
+          html += `<div class="result-row"><span>📨</span><span style="color:var(--text-dim);font-size:11px;">${n}</span></div>`;
+        });
+        html += '</div>';
+      }
+      document.getElementById('modal-body').innerHTML = html;
+      document.getElementById('result-modal').classList.add('open');
+      updateCartBadge(0);
+    } else {
+      showToast(d.error || 'Ошибка оформления', 'error');
+    }
+  }).catch(() => { btn.disabled=false; btn.textContent='Оплатить'; showToast('Ошибка сети','error'); });
+}
+
+// Init recalc
+recalc();
+</script>
+{% endblock %}

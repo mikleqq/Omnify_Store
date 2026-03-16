@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Каталог — Omnify Store{% endblock %}
+
+{% block content %}
+<div class="page">
+  <h1 class="page-title">Каталог</h1>
+  <p class="page-sub">{{ products|length }} товаров</p>
+
+  <div class="filter-tabs" id="filter-tabs">
+    <button class="filter-tab active" data-type="all">Все</button>
+    <button class="filter-tab" data-type="physical">Физические</button>
+    <button class="filter-tab" data-type="digital">Цифровые</button>
+    <button class="filter-tab" data-type="subscription">Подписки</button>
+  </div>
+
+  <div class="product-grid" id="product-grid">
+    {% set product_images = {
+      'p1': 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=560&h=360&fit=crop',
+      'p2': 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=560&h=360&fit=crop',
+      'p3': 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=560&h=360&fit=crop',
+      'p4': 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=560&h=360&fit=crop',
+      'd1': 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=560&h=360&fit=crop',
+      'd2': 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=560&h=360&fit=crop',
+      'd3': 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=560&h=360&fit=crop',
+      's1': 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=560&h=360&fit=crop',
+      's2': 'https://images.unsplash.com/photo-1611339555312-e607c8352fd7?w=560&h=360&fit=crop',
+      's3': 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=560&h=360&fit=crop',
+    } %}
+    {% for p in products %}
+    {% set type_map = {'physical':'type-physical','digital':'type-digital','subscription':'type-subscription'} %}
+    {% set type_label = {'physical':'Физический','digital':'Цифровой','subscription':'Подписка'} %}
+    <div class="product-tile" data-type="{{ p.type }}" data-id="{{ p.product_id }}">
+      <span class="product-type-badge {{ type_map.get(p.type, '') }}">
+        {{ type_label.get(p.type, p.type) }}
+      </span>
+      <div class="product-img-wrap">
+        <img
+          src="{{ product_images.get(p.product_id, 'https://picsum.photos/seed/' + p.product_id + '/560/360') }}"
+          alt="{{ p.name }}"
+          class="product-img"
+          loading="lazy">
+      </div>
+      <div class="product-name">{{ p.name }}</div>
+      <div class="product-meta text-dim" style="font-family:var(--mono);font-size:11px;margin-bottom:16px;">{{ p.product_id }}</div>
+      <div class="flex items-center justify-between gap-2 mt-3">
+        <span class="product-price">${{ p.price | int }}</span>
+        <button class="add-btn" onclick="addToCart('{{ p.product_id }}', this)">+ В корзину</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filter tabs
+document.getElementById('filter-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-tab');
+  if (!btn) return;
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const type = btn.dataset.type;
+  document.querySelectorAll('.product-tile').forEach(tile => {
+    tile.style.display = (type === 'all' || tile.dataset.type === type) ? '' : 'none';
+  });
+});
+
+// Add to cart
+function addToCart(id, btn) {
+  btn.disabled = true;
+  btn.textContent = '...';
+  fetch('/cart/add/' + id, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      if (d.cart_count !== undefined) {
+        updateCartBadge(d.cart_count);
+        showToast('Добавлено в корзину', 'success');
+      } else {
+        showToast(d.error || 'Ошибка', 'error');
+      }
+      btn.disabled = false;
+      btn.textContent = '+ В корзину';
+    })
+    .catch(() => { btn.disabled = false; btn.textContent = '+ В корзину'; });
+}
+</script>
+{% endblock %}

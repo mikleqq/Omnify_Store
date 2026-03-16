@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Корзина — Omnify Store{% endblock %}
+
+{% block content %}
+<div class="page">
+  <h1 class="page-title">Корзина</h1>
+  <p class="page-sub">{{ items|length }} позиций</p>
+
+  {% if not items %}
+  <div class="card">
+    <div class="card-body cart-empty-state">
+      <span class="big">🛒</span>
+      Корзина пуста
+      <br><br>
+      <a href="{{ url_for('index') }}" class="add-btn" style="display:inline-block;text-decoration:none;">Перейти в каталог</a>
+    </div>
+  </div>
+  {% else %}
+  <div class="flex gap-4" style="align-items:flex-start;flex-wrap:wrap;">
+
+    <!-- Items table -->
+    <div class="card" style="flex:1;min-width:300px;">
+      <div class="card-header">Товары</div>
+      <div class="card-body" style="padding:0;">
+        <table class="cart-table">
+          <thead>
+            <tr>
+              <th>Товар</th>
+              <th>Цена</th>
+              <th>Кол-во</th>
+              <th>Сумма</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="cart-body">
+            {% for item in items %}
+            <tr id="row-{{ item.product_id }}">
+              <td>
+                <div style="font-weight:600;font-size:13px;">{{ item.name }}</div>
+                <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">{{ item.product_id }}</div>
+              </td>
+              <td style="font-family:var(--mono);font-size:13px;color:var(--accent);">${{ item.price|int }}</td>
+              <td>
+                <div class="qty-controls">
+                  <button class="qty-btn" onclick="updateQty('{{ item.product_id }}', -1)">−</button>
+                  <span class="qty-val" id="qty-{{ item.product_id }}">{{ item.quantity }}</span>
+                  <button class="qty-btn" onclick="updateQty('{{ item.product_id }}', 1)">+</button>
+                </div>
+              </td>
+              <td style="font-family:var(--mono);font-size:13px;" id="line-{{ item.product_id }}">
+                ${{ (item.price * item.quantity)|int }}
+              </td>
+              <td>
+                <button class="remove-btn" onclick="removeItem('{{ item.product_id }}')" title="Удалить">✕</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="card" style="width:280px;flex-shrink:0;">
+      <div class="card-header">Итого</div>
+      <div class="card-body">
+        <div class="summary-row">
+          <span class="lbl">Товаров</span>
+          <span class="val" id="sum-items">${{ total | int }}</span>
+        </div>
+        <div class="summary-row summary-total">
+          <span class="lbl">К оплате</span>
+          <span class="val" id="sum-total">${{ total | int }}</span>
+        </div>
+        <a href="{{ url_for('checkout') }}" class="checkout-btn">
+          Оформить заказ →
+        </a>
+        <button onclick="clearCart()" style="width:100%;background:none;border:none;color:var(--text-dim);font-family:var(--mono);font-size:11px;margin-top:10px;cursor:pointer;padding:4px;">
+          Очистить корзину
+        </button>
+      </div>
+    </div>
+
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateQty(id, delta) {
+  const qtyEl = document.getElementById('qty-' + id);
+  const current = parseInt(qtyEl.textContent);
+  const next = current + delta;
+  if (next < 1) return removeItem(id);
+  fetch('/cart/update', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({product_id: id, quantity: next})
+  }).then(r=>r.json()).then(d=>{
+    if (d.cart_count !== undefined) {
+      qtyEl.textContent = next;
+      document.getElementById('line-' + id).textContent = d.line_total + ' ₽';
+      document.getElementById('sum-items').textContent = d.total + ' ₽';
+      document.getElementById('sum-total').textContent = d.total + ' ₽';
+      updateCartBadge(d.cart_count);
+    }
+  });
+}
+
+function removeItem(id) {
+  fetch('/cart/remove/' + id, {method:'POST'})
+    .then(r=>r.json()).then(d=>{
+      const row = document.getElementById('row-' + id);
+      if (row) row.remove();
+      if (d.cart_count !== undefined) updateCartBadge(d.cart_count);
+      if (d.cart_count === 0) location.reload();
+      else {
+        document.getElementById('sum-items').textContent = d.total + ' ₽';
+        document.getElementById('sum-total').textContent = d.total + ' ₽';
+      }
+    });
+}
+
+function clearCart() {
+  fetch('/cart/clear', {method:'POST'}).then(()=>location.reload());
+}
+</script>
+{% endblock %}

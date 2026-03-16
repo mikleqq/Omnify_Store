@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Заказ #{{ order.order_id }} — Omnify Store{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="flex items-center gap-3 mb-4" style="flex-wrap:wrap;">
+    <a href="{{ url_for('orders') }}" style="font-family:var(--mono);font-size:12px;color:var(--text-dim);text-decoration:none;">
+      ← Все заказы
+    </a>
+    <h1 class="page-title" style="margin:0;">Заказ #{{ order.order_id }}</h1>
+    <span class="status-badge status-{{ order.status }}">
+      {% set status_map = {'pending':'Ожидает','paid':'Оплачен','shipped':'Отправлен','delivered':'Доставлен','cancelled':'Отменён','payment_failed':'Ошибка оплаты'} %}
+      {{ status_map.get(order.status, order.status) }}
+    </span>
+  </div>
+
+  <div class="flex gap-4" style="align-items:flex-start;flex-wrap:wrap;">
+
+    <!-- LEFT: Items + Customer -->
+    <div style="flex:1;min-width:320px;display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Items -->
+      <div class="card">
+        <div class="card-header">Товары ({{ order['items']|length }})</div>
+        <div class="card-body" style="padding:0;">
+          <table class="cart-table">
+            <thead>
+              <tr>
+                <th>Товар</th>
+                <th>Цена</th>
+                <th>Кол-во</th>
+                <th>Сумма</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in order['items'] %}
+              <tr>
+                <td>
+                  <span style="font-size:18px;margin-right:8px;">{{ item.icon }}</span>
+                  <span style="font-weight:600;">{{ item.name }}</span>
+                </td>
+                <td style="font-family:var(--mono);font-size:13px;color:var(--accent);">${{ item.price|int }}</td>
+                <td style="font-family:var(--mono);">×{{ item.quantity }}</td>
+                <td style="font-family:var(--mono);font-size:13px;">${{ (item.price * item.quantity)|int }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Customer info -->
+      <div class="card">
+        <div class="card-header">Контактные данные</div>
+        <div class="card-body">
+          <div class="flex" style="flex-direction:column;gap:8px;">
+            <div class="flex items-center gap-3">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);width:80px;">Имя</span>
+              <span>{{ order.customer.name }}</span>
+            </div>
+            {% if order.customer.email %}
+            <div class="flex items-center gap-3">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);width:80px;">Email</span>
+              <span style="font-family:var(--mono);font-size:12px;">{{ order.customer.email }}</span>
+            </div>
+            {% endif %}
+            {% if order.customer.phone %}
+            <div class="flex items-center gap-3">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);width:80px;">Телефон</span>
+              <span style="font-family:var(--mono);font-size:12px;">{{ order.customer.phone }}</span>
+            </div>
+            {% endif %}
+            {% if order.delivery_address %}
+            <div class="flex items-center gap-3">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);width:80px;">Адрес</span>
+              <span style="font-size:13px;">{{ order.delivery_address }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Summary -->
+    <div style="width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:16px;">
+
+      <div class="card">
+        <div class="card-header">Детали заказа</div>
+        <div class="card-body">
+          <div class="summary-row">
+            <span class="lbl">Дата</span>
+            <span style="font-family:var(--mono);font-size:12px;">{{ order.created_at }}</span>
+          </div>
+
+          <div class="summary-row">
+            <span class="lbl">Доставка</span>
+            <span style="font-family:var(--mono);font-size:12px;">
+              {% set dlv = {'courier':'Курьер','pickup':'Самовывоз','express':'Экспресс','post':'Почта России'} %}
+              {{ dlv.get(order.delivery_method, order.delivery_method) }}
+            </span>
+          </div>
+
+          <div class="summary-row">
+            <span class="lbl">Оплата</span>
+            <span style="font-family:var(--mono);font-size:12px;">
+              {% set pm = {'card':'Банковская карта','paypal':'PayPal','crypto':'Криптовалюта'} %}
+              {{ pm.get(order.payment_method, order.payment_method) }}
+            </span>
+          </div>
+
+          {% if order.coupon_code %}
+          <div class="summary-row">
+            <span class="lbl">Промокод</span>
+            <span style="font-family:var(--mono);font-size:12px;color:var(--accent3);">
+              {{ order.coupon_code }} (−{{ order.discount_pct|int }}%)
+            </span>
+          </div>
+          {% endif %}
+
+          {% if order['decorations'] %}
+          <div class="summary-row" style="align-items:flex-start;">
+            <span class="lbl">Доп. услуги</span>
+            <div style="text-align:right;">
+              {% set dec_map = {'gift_wrap':'🎁 Упаковка','express_upgrade':'⚡ Экспресс','insurance':'🛡 Страховка'} %}
+              {% for d in order['decorations'] %}
+              <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">{{ dec_map.get(d, d) }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="divider"></div>
+
+          <div class="summary-row">
+            <span class="lbl">Товары</span>
+            <span style="font-family:var(--mono);font-size:12px;">${{ order.subtotal|int }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="lbl">Доставка</span>
+            <span style="font-family:var(--mono);font-size:12px;">
+              {% if order.delivery_cost == 0 %}Бесплатно{% else %}${{ order.delivery_cost|int }}{% endif %}
+            </span>
+          </div>
+          <div class="summary-row summary-total">
+            <span class="lbl">Итого</span>
+            <span class="val">${{ order.total|int }}</span>
+          </div>
+        </div>
+      </div>
+
+      <a href="{{ url_for('index') }}" class="checkout-btn" style="text-align:center;">
+        Продолжить покупки
+      </a>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}

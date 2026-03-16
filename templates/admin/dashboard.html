@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Админ-панель — Omnify Store{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="admin-header">
+    <div class="flex items-center gap-3">
+      <h1 class="admin-title">Панель управления</h1>
+      <span class="admin-badge">⚡ ADMIN</span>
+    </div>
+    <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">
+      Вы вошли как {{ current_user.username }}
+    </span>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <span class="stat-icon">👥</span>
+      <div class="stat-label">Пользователи</div>
+      <div class="stat-value">{{ stats.total_users }}</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">📋</span>
+      <div class="stat-label">Заказы</div>
+      <div class="stat-value">{{ stats.total_orders }}</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">💰</span>
+      <div class="stat-label">Выручка</div>
+      <div class="stat-value" style="font-size:20px;">${{ stats.total_revenue|int }}</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">✅</span>
+      <div class="stat-label">Оплачено</div>
+      <div class="stat-value">{{ stats.paid_orders }}</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="admin-tabs">
+    <button class="admin-tab active" onclick="showTab('users', this)">Пользователи</button>
+    <button class="admin-tab" onclick="showTab('orders', this)">Заказы</button>
+  </div>
+
+  <!-- Users tab -->
+  <div id="tab-users" class="card">
+    <div class="card-header">Пользователи ({{ users|length }})</div>
+    <div class="card-body" style="padding:0;">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Логин</th>
+            <th>Email</th>
+            <th>Дата</th>
+            <th>Роль</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody">
+          {% for u in users %}
+          <tr id="urow-{{ u.user_id }}">
+            <td class="mono" style="font-size:11px;color:var(--text-dim);">{{ u.user_id }}</td>
+            <td style="font-weight:600;">
+              {{ u.username }}
+              {% if u.user_id == current_user.user_id %}
+              <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);"> (вы)</span>
+              {% endif %}
+            </td>
+            <td class="mono" style="font-size:11px;">{{ u.email }}</td>
+            <td class="mono" style="font-size:11px;color:var(--text-dim);">{{ u.created_at }}</td>
+            <td>
+              <span class="status-badge {% if u.is_admin %}status-paid{% else %}status-pending{% endif %}" id="role-{{ u.user_id }}">
+                {{ 'Админ' if u.is_admin else 'Пользователь' }}
+              </span>
+            </td>
+            <td>
+              {% if u.user_id != current_user.user_id %}
+              <button class="icon-btn {% if u.is_admin %}danger{% else %}success{% endif %}" id="toggle-btn-{{ u.user_id }}"
+                      onclick="toggleAdmin('{{ u.user_id }}')">
+                {{ '↓ Разжаловать' if u.is_admin else '↑ Назначить' }}
+              </button>
+              &nbsp;
+              <button class="icon-btn danger" onclick="deleteUser('{{ u.user_id }}', '{{ u.username }}')">Удалить</button>
+              {% else %}
+              <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Orders tab -->
+  <div id="tab-orders" class="card" style="display:none;">
+    <div class="card-header">Заказы ({{ orders|length }})</div>
+    <div class="card-body" style="padding:0;">
+      {% if not orders %}
+      <div style="text-align:center;padding:40px;font-family:var(--mono);font-size:12px;color:var(--text-dim);">Заказов нет</div>
+      {% else %}
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Покупатель</th>
+            <th>Сумма</th>
+            <th>Дата</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in orders | sort(attribute='created_at', reverse=True) %}
+          <tr>
+            <td>
+              <a href="{{ url_for('order_detail', order_id=o.order_id) }}"
+                 style="color:var(--accent);font-family:var(--mono);font-size:12px;text-decoration:none;">
+                #{{ o.order_id }}
+              </a>
+            </td>
+            <td style="font-size:13px;">{{ o.customer.name }}</td>
+            <td style="font-family:var(--mono);color:var(--accent);font-weight:600;">${{ o.total|int }}</td>
+            <td style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">{{ o.created_at }}</td>
+            <td>
+              <select class="status-select" onchange="updateStatus('{{ o.order_id }}', this)">
+                {% for s in ['pending','paid','shipped','delivered','cancelled'] %}
+                  {% set labels = {'pending':'Ожидает','paid':'Оплачен','shipped':'Отправлен','delivered':'Доставлен','cancelled':'Отменён'} %}
+                  <option value="{{ s }}" {% if o.status == s %}selected{% endif %}>{{ labels[s] }}</option>
+                {% endfor %}
+              </select>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showTab(name, btn) {
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).style.display = '';
+  btn.classList.add('active');
+}
+
+function toggleAdmin(userId) {
+  fetch('/admin/users/' + userId + '/toggle_admin', {method:'POST'})
+    .then(r=>r.json()).then(d=>{
+      if (d.success) {
+        const badge = document.getElementById('role-' + userId);
+        const btn   = document.getElementById('toggle-btn-' + userId);
+        if (d.is_admin) {
+          badge.textContent = 'Админ';
+          badge.className   = 'status-badge status-paid';
+          btn.textContent   = '↓ Разжаловать';
+          btn.className     = 'icon-btn danger';
+        } else {
+          badge.textContent = 'Пользователь';
+          badge.className   = 'status-badge status-pending';
+          btn.textContent   = '↑ Назначить';
+          btn.className     = 'icon-btn success';
+        }
+        showToast(d.username + ': роль изменена', 'success');
+      } else {
+        showToast(d.error || 'Ошибка', 'error');
+      }
+    });
+}
+
+function deleteUser(userId, username) {
+  if (!confirm('Удалить пользователя ' + username + '?')) return;
+  fetch('/admin/users/' + userId + '/delete', {method:'POST'})
+    .then(r=>r.json()).then(d=>{
+      if (d.success) {
+        const row = document.getElementById('urow-' + userId);
+        if (row) row.remove();
+        showToast('Пользователь удалён', 'success');
+      } else {
+        showToast(d.error || 'Ошибка', 'error');
+      }
+    });
+}
+
+function updateStatus(orderId, select) {
+  fetch('/admin/orders/' + orderId + '/status', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({status: select.value})
+  }).then(r=>r.json()).then(d=>{
+    if (d.success) showToast('Статус обновлён', 'success');
+    else showToast(d.error || 'Ошибка', 'error');
+  });
+}
+</script>
+{% endblock %}

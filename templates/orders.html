@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Мои заказы — Omnify Store{% endblock %}
+
+{% block content %}
+<div class="page">
+  <h1 class="page-title">Мои заказы</h1>
+  <p class="page-sub">{{ orders|length }} заказов</p>
+
+  {% if not orders %}
+  <div class="card">
+    <div class="card-body cart-empty-state">
+      <span class="big">📋</span>
+      Заказов пока нет
+      <br><br>
+      <a href="{{ url_for('index') }}" class="add-btn" style="display:inline-block;text-decoration:none;">Перейти в каталог</a>
+    </div>
+  </div>
+  {% else %}
+    {% for order in orders | sort(attribute='created_at', reverse=True) %}
+    <a href="{{ url_for('order_detail', order_id=order.order_id) }}" style="text-decoration:none;color:inherit;">
+      <div class="order-card">
+        <div class="flex items-center justify-between gap-3" style="flex-wrap:wrap;">
+          <div class="flex items-center gap-3">
+            <span class="order-id-badge">#{{ order.order_id }}</span>
+            <span class="status-badge status-{{ order.status }}">
+              {% set status_map = {'pending':'Ожидает','paid':'Оплачен','shipped':'Отправлен','delivered':'Доставлен','cancelled':'Отменён','payment_failed':'Ошибка оплаты'} %}
+              {{ status_map.get(order.status, order.status) }}
+            </span>
+          </div>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">{{ order.created_at }}</span>
+        </div>
+
+        <div class="flex items-center justify-between mt-3" style="flex-wrap:wrap;gap:12px;">
+          <div>
+            {% for item in order['items'][:4] %}
+            <span class="item-tag">{{ item.icon }} {{ item.name }} ×{{ item.quantity }}</span>
+            {% endfor %}
+            {% if order['items']|length > 4 %}
+            <span class="item-tag">+{{ order['items']|length - 4 }}</span>
+            {% endif %}
+          </div>
+          <span style="font-family:var(--mono);font-size:16px;color:var(--accent);font-weight:700;">
+            ${{ order.total|int }}
+          </span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}
