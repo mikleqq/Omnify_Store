@@ -2,11 +2,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-
-# ─────────────────────────────────────────────
-#  BUILDER  –  конструирование сложного заказа
-# ─────────────────────────────────────────────
-
 class Order:
     """Результирующий объект заказа."""
 
@@ -87,8 +82,6 @@ class OrderBuilder:
         return self._order
 
 
-# ── Хранилище заказов (in-memory) ────────────
-
 _orders_store: dict[str, dict] = {}
 
 
@@ -104,7 +97,6 @@ def get_all_orders() -> list[dict]:
     return list(_orders_store.values())
 
 
-# ── Купоны ──────────────────────────────────
 
 COUPONS: dict[str, float] = {
     "SAVE10": 10.0,
