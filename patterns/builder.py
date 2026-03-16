@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 
 class Order:
-    """Результирующий объект заказа."""
+
 
     def __init__(self):
         self.order_id: str = str(uuid.uuid4())[:8].upper()
@@ -41,7 +41,7 @@ class Order:
 
 
 class OrderBuilder:
-    """Builder: пошаговое создание заказа."""
+
 
     def __init__(self):
         self._order = Order()
@@ -107,5 +107,5 @@ COUPONS: dict[str, float] = {
 
 
 def validate_coupon(code: str) -> float:
-    """Возвращает процент скидки или 0 если купон неверен."""
+
     return COUPONS.get(code.upper(), 0.0)

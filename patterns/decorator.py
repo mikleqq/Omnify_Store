@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 # ─────────────────────────────────────────────
 
 class OrderComponent(ABC):
-    """Базовый компонент заказа."""
+
 
     @abstractmethod
     def get_total(self) -> float: ...
@@ -19,7 +19,7 @@ class OrderComponent(ABC):
 
 
 class BaseOrder(OrderComponent):
-    """Конкретный компонент – «голый» заказ без опций."""
+
 
     def __init__(self, items: list[dict], delivery_cost: float = 0.0):
         self._subtotal = sum(i["price"] * i["quantity"] for i in items)
@@ -36,7 +36,7 @@ class BaseOrder(OrderComponent):
 
 
 class OrderDecorator(OrderComponent, ABC):
-    """Абстрактный декоратор."""
+
 
     def __init__(self, component: OrderComponent):
         self._component = component
@@ -52,7 +52,7 @@ class OrderDecorator(OrderComponent, ABC):
 
 
 class GiftWrapDecorator(OrderDecorator):
-    """Декоратор: подарочная упаковка (+150 ₽)."""
+
 
     COST = 150.0
 
@@ -67,7 +67,7 @@ class GiftWrapDecorator(OrderDecorator):
 
 
 class DiscountDecorator(OrderDecorator):
-    """Декоратор: скидка в процентах."""
+
 
     def __init__(self, component: OrderComponent, discount_pct: float):
         super().__init__(component)
@@ -88,7 +88,7 @@ class DiscountDecorator(OrderDecorator):
 
 
 class ExpressUpgradeDecorator(OrderDecorator):
-    """Декоратор: ускоренная обработка (+300 ₽)."""
+
 
     COST = 300.0
 
@@ -103,7 +103,7 @@ class ExpressUpgradeDecorator(OrderDecorator):
 
 
 class InsuranceDecorator(OrderDecorator):
-    """Декоратор: страховка (1% от суммы, мин. 50 ₽)."""
+
 
     def __init__(self, component: OrderComponent):
         super().__init__(component)
@@ -131,7 +131,7 @@ DECORATOR_MAP = {
 
 
 def apply_decorators(base: OrderComponent, options: list[str], discount_pct: float = 0.0) -> OrderComponent:
-    """Обернуть компонент в цепочку декораторов согласно списку опций."""
+
     result = base
     for opt in options:
         cls = DECORATOR_MAP.get(opt)

@@ -111,7 +111,7 @@ def get_delivery_strategy(name: str) -> DeliveryStrategy:
 
 
 class DeliveryContext:
-    """Контекст, использующий выбранную стратегию."""
+
 
     def __init__(self, strategy: DeliveryStrategy):
         self._strategy = strategy

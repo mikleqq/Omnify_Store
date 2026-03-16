@@ -1,10 +1,4 @@
-"""
-Omnify Store – Система управления заказами
-==========================================
-Паттерны: Factory Method, Abstract Factory, Singleton, Builder,
-          Prototype, Adapter, Observer, Strategy, Decorator
-+ Auth: регистрация / вход / admin panel
-"""
+
 
 import uuid
 from functools import wraps
@@ -93,10 +87,6 @@ def inject_globals():
     }
 
 
-# ═══════════════════════════════════════
-#  AUTH ROUTES
-# ═══════════════════════════════════════
-
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if session.get("auth_user_id"):
@@ -143,10 +133,6 @@ def logout():
     flash("Вы вышли из системы", "success")
     return redirect(url_for("index"))
 
-
-# ═══════════════════════════════════════
-#  ADMIN ROUTES
-# ═══════════════════════════════════════
 
 @app.route("/admin")
 @login_required
@@ -216,9 +202,6 @@ def index():
     return render_template("index.html", products=products)
 
 
-# ═══════════════════════════════════════
-#  ROUTES – Корзина
-# ═══════════════════════════════════════
 
 @app.route("/cart")
 def cart():
@@ -275,11 +258,6 @@ def cart_clear():
     uid = get_cart_user_id()
     cart_manager.clear_cart(uid)
     return redirect(url_for("cart"))
-
-
-# ═══════════════════════════════════════
-#  ROUTES – Оформление заказа
-# ═══════════════════════════════════════
 
 @app.route("/checkout")
 def checkout():

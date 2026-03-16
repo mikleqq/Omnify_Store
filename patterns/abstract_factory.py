@@ -1,10 +1,6 @@
 from abc import ABC, abstractmethod
 
 
-# ─────────────────────────────────────────────
-#  ABSTRACT FACTORY  –  платёжные фабрики
-# ─────────────────────────────────────────────
-
 class PaymentButton(ABC):
     @abstractmethod
     def render(self) -> str: ...

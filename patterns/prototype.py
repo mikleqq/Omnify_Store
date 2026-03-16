@@ -3,37 +3,9 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
 
-
-# ─────────────────────────────────────────────────────────────────
-#  PROTOTYPE  –  клонирование карточек товаров
-#
-#  Структура точно соответствует GoF UML:
-#
-#   Graphic  ◄────────────────── GraphicTool.prototype
-#   ├── Staff
-#   └── MusicalNote  (abstract)
-#       ├── WholeNote
-#       └── HalfNote
-#
-#  Tool  (abstract)
-#  ├── RotateTool
-#  └── GraphicTool  ──► prototype: Graphic
-#
-#  В контексте магазина:
-#   Graphic      → ProductCard    (абстрактная карточка товара)
-#   Staff        → BundleCard     (карточка набора/комплекта)
-#   MusicalNote  → LicensedCard   (абстрактная лицензируемая карточка)
-#   WholeNote    → FullLicense    (полная лицензия)
-#   HalfNote     → TrialLicense   (пробная / trial-версия)
-#   Tool         → CatalogTool    (абстрактный инструмент каталога)
-#   RotateTool   → SortTool       (сортировка / перестановка карточек)
-#   GraphicTool  → QuickAddTool   (быстрое клонирование → добавление в корзину)
-# ─────────────────────────────────────────────────────────────────
-
-
 @dataclass
 class Position:
-    """Позиция / «слот» отображения карточки в каталоге."""
+
     row: int = 0
     col: int = 0
 
@@ -46,11 +18,7 @@ class Position:
 # ═══════════════════════════════════════════════════════════════
 
 class ProductCard(ABC):
-    """
-    Graphic — абстрактный прототип карточки товара.
-    Каждый конкретный класс умеет себя отрисовать (render)
-    и вернуть глубокую копию самого себя (clone).
-    """
+
 
     def __init__(self, product_id: str, name: str, price: float):
         self.product_id = product_id
@@ -63,20 +31,15 @@ class ProductCard(ABC):
         ...
 
     def clone(self) -> "ProductCard":
-        """Clone() — возвращает копию самого себя (глубокое копирование)."""
+    
         return deepcopy(self)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id={self.product_id!r}, name={self.name!r})"
 
 
-# ── Staff ─────────────────────────────────────────────────────
-
 class BundleCard(ProductCard):
-    """
-    Staff — карточка физического набора/комплекта товаров.
-    Хранит список вложенных позиций.
-    """
+
 
     def __init__(self, product_id: str, name: str, price: float,
                  items: list[str] | None = None):
@@ -96,13 +59,8 @@ class BundleCard(ProductCard):
         return copy
 
 
-# ── MusicalNote (abstract) → LicensedCard ────────────────────
-
 class LicensedCard(ProductCard, ABC):
-    """
-    MusicalNote — абстрактная карточка лицензируемого цифрового товара.
-    Конкретные подклассы определяют тип лицензии.
-    """
+
 
     @abstractmethod
     def get_license_type(self) -> str: ...
@@ -115,10 +73,7 @@ class LicensedCard(ProductCard, ABC):
 
 
 class FullLicense(LicensedCard):
-    """
-    WholeNote — полная (коммерческая) лицензия.
-    Clone() возвращает копию самого себя.
-    """
+
 
     def get_license_type(self) -> str:
         return "Полная коммерческая"
@@ -130,10 +85,7 @@ class FullLicense(LicensedCard):
 
 
 class TrialLicense(LicensedCard):
-    """
-    HalfNote — пробная (trial) лицензия, ограниченная по времени.
-    Clone() возвращает копию самого себя.
-    """
+   
 
     def __init__(self, product_id: str, name: str, price: float,
                  trial_days: int = 14):
@@ -149,25 +101,18 @@ class TrialLicense(LicensedCard):
         return copy
 
 
-# ═══════════════════════════════════════════════════════════════
-#  TOOL HIERARCHY  (Tool → RotateTool / GraphicTool)
-# ═══════════════════════════════════════════════════════════════
-
 class CatalogTool(ABC):
-    """Tool — абстрактный инструмент работы с каталогом."""
+
 
     @abstractmethod
     def apply(self, drawing: list[ProductCard],
               position: Position | None = None) -> str:
-        """Manipulate() из диаграммы."""
+
         ...
 
 
 class SortTool(CatalogTool):
-    """
-    RotateTool — переставляет карточки в каталоге по цене.
-    Не использует прототип; просто сортирует.
-    """
+
 
     def apply(self, drawing: list[ProductCard],
               position: Position | None = None) -> str:
@@ -177,14 +122,7 @@ class SortTool(CatalogTool):
 
 
 class QuickAddTool(CatalogTool):
-    """
-    GraphicTool — держит ссылку на прототип и при каждом apply():
 
-        p = prototype.clone()          # ← Clone()
-        while пользователь тащит мышь:
-            p.render(new_position)     # ← Draw(Position)
-        вставить p в каталог           # ← вставить p в рисунок
-    """
 
     def __init__(self, prototype: ProductCard):
         self.prototype = prototype        # ← поле prototype из диаграммы
@@ -215,30 +153,26 @@ class QuickAddTool(CatalogTool):
         )
 
 
-# ═══════════════════════════════════════════════════════════════
-#  Вспомогательная фабрика прототипов для маршрутов Flask
-# ═══════════════════════════════════════════════════════════════
-
 _PROTOTYPE_REGISTRY: dict[str, ProductCard] = {}
 
 
 def register_prototype(card: ProductCard) -> None:
-    """Зарегистрировать прототип по product_id."""
+
     _PROTOTYPE_REGISTRY[card.product_id] = card
 
 
 def get_prototype(product_id: str) -> ProductCard | None:
-    """Вернуть прототип по product_id (или None)."""
+
     return _PROTOTYPE_REGISTRY.get(product_id)
 
 
 def clone_product(product_id: str) -> ProductCard | None:
-    """Клонировать зарегистрированный прототип."""
+
     proto = get_prototype(product_id)
     return proto.clone() if proto else None
 
 
-# ── Регистрируем прототипы по умолчанию ──────────────────────
+
 
 register_prototype(BundleCard("b1",  "Набор геймера",          299,
                                ["Ноутбук ASUS ROG", "Мышь", "Наушники"]))

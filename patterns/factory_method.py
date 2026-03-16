@@ -84,7 +84,7 @@ class SubscriptionProduct(Product):
 
 
 class ProductFactory:
-    """Factory Method: создаёт нужный тип товара по строковому ключу."""
+
 
     _registry = {
         "physical": PhysicalProduct,
@@ -105,7 +105,6 @@ class ProductFactory:
 # ─────────────────────────────────────────────
 
 class CloneableMixin:
-    """Примесь Prototype: глубокое копирование объекта."""
 
     def clone(self):
         return deepcopy(self)

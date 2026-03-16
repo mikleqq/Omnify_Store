@@ -2,14 +2,12 @@ from abc import ABC, abstractmethod
 from typing import Callable
 
 
-# ─────────────────────────────────────────────
-#  OBSERVER  –  система уведомлений
-# ─────────────────────────────────────────────
+
 
 class NotificationObserver(ABC):
     @abstractmethod
     def update(self, event: str, data: dict) -> str:
-        """Обработать событие. Возвращает описание отправленного уведомления."""
+
         ...
 
     @abstractmethod
@@ -62,7 +60,7 @@ class PushObserver(NotificationObserver):
 
 
 class NotificationService:
-    """Subject в паттерне Observer."""
+
 
     def __init__(self):
         self._observers: list[NotificationObserver] = []
@@ -86,5 +84,5 @@ class NotificationService:
         self._observers.clear()
 
 
-# Глобальный сервис уведомлений
+
 notification_service = NotificationService()
